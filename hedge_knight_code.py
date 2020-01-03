@@ -1,18 +1,24 @@
 import discord
 import random
+import asyncio
+from itertools import cycle
 from discord.ext import commands
 
 #This is where global variables go
 playerone = None
 playertwo = None
-
+counter = 0
 
 #This makes it so typing hk.commandname makes the bot perform a specific command
 client = commands.Bot(command_prefix = "hk.")
 
 
 
-#New Event, prints to IDLE on running to alert that its working
+#---------------LIST OF EVENTS-------------#
+
+
+
+#This event will notify the writer in the IDLE that the bot is online and ready for use
 @client.event
 async def on_ready():
     
@@ -21,65 +27,79 @@ async def on_ready():
 #End of Event
 
 
+    
+#This event will update the counter every second and reset after five minutes by default
+async def countertrack():
 
-#New Event, prints the trumpdog emote if someone says trumpdog in the chat
+    #This pulls in required global variables into this function
+    global counter
+
+    #This means the loop wont work until the bot is finished with the on_ready event
+    await client.wait_until_ready()
+
+    #While the bot is running loop
+    while True:
+
+        #increment counter
+        counter += 1
+
+        #After five minutes (three hundred seconds) reset the counter
+        if counter == 300:
+
+            counter = 0
+
+        #Before restarting the loop wait one second
+        await asyncio.sleep(1) 
+    
+#End of Event
+
+
+
+#This event will print the trumpdog emote is a message has the word "trumpdog" in it
 @client.event
 async def on_message(message):
 
-    #If statement, if trumpdog is in the lastest message then...
+    #Logic statement where if trumpdog is in the newest message it spams the trumpdog emote 
     if "trumpdog" in message.content:
         
-        #In the channel where the message was sent, send the enclosed content
          await message.channel.send("<:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441> <:TrumpDog:639548018231869441>")
 
-    #This line is needed to ensure other commands can be used, otherwise it always waits for trumpdog only   
+    #This line is needed to ensure other commands can be used while it watches for trumpdog
     await client.process_commands(message)
 
 #End of Event
 
 
-
-#New Event, prints "that's a bruh moment" when you type hk.brmo (MOSTLY FOR TESTING)
-@client.command()
-async def brmo(ctx):
     
-    await ctx.send("Thats a bruh moment...")
-    
-#End of Event
-
-
-
-#New Event, used to assign playerone and playetwo and tie them with user ID's for games, if there is already a player one/two they can't play if they type this command.
+#This event will add the user to be player one or player two and wont add them if they are already one of the players or there are two players
 @client.command()
 async def joingame(ctx, member: discord.Member = None):
 
-    #This pulls in the global playerone and playertwo variables into the function
+    #This pulls in required global variables into this function
     global playerone
     global playertwo
 
-    #If statement, if playerone is not taken by anyone then...
+    #Three logic statements where 
     if playerone is None:
 
         #playerone becomes the person who started the command and the bot sends a message notifying the user they are player one.
         playerone = ctx.message.author
         await ctx.send("You are player one.")
 
-    #(I) Else if statement, if there is a player one and player two is not taken then...
     elif playerone is not None and playertwo is None:
 
-        #Nested if statement, if the person who started the command is not the same ID as player one then...
+        #Two logic statements where it checks if the user is already in the place of player one
         if ctx.message.author is not playerone:
 
-            #playertwo becomes the person who started the command and the bot sends a message notifying the user they are second place
+            #playertwo becomes the user and the bot sends a message notifying the user they are now player two
             playertwo = ctx.message.author
             await ctx.send("You are player two.")
 
-        #Else if statement, if the person who became player one uses the command again then they don't get the next spot, they are notified by message
         elif ctx.message.author is playerone:
 
+            #Alerts user they are already player one 
             await ctx.send("You are already in the game.")
 
-    #(II) Else if statement, if playerone and playertwo are both taken and not empty the notify the user they can't join
     elif playertwo and playerone is not None:
 
         await ctx.send("There are already two players.")
@@ -92,11 +112,11 @@ async def joingame(ctx, member: discord.Member = None):
 @client.command()
 async def leavegame(ctx, member: discord.Member = None):
 
-    #This pulls in the global playerone and playertwo variables into the function
+    #This pulls in required global variables into this function
     global playerone
     global playertwo
 
-    #Three logic statements dedicated to finding who the user who used the command is and then removing them from the variable
+    #Three logic statements where it's dedicated to finding who the user who used the command is and then removing them from the variable
     if ctx.message.author is playerone:
 
         playerone = None
@@ -115,15 +135,42 @@ async def leavegame(ctx, member: discord.Member = None):
 
 
 
-#New Event, gives both playerone and playertwo ID's from the global variables
+#---------------TESTING COMMANDS-------------#
+
+
+
+#This test will send a message into the chat you ent the command in
+@client.command()
+async def brmo(ctx):
+    
+    await ctx.send("Thats a bruh moment...")
+    
+#End of Event
+
+
+
+#This test checks the current status of the timecheck variable
+@client.command()
+async def timer(ctx):
+
+    #This pulls the global variables into the function
+    global counter
+    
+    await ctx.send(counter)
+    
+#End of Event
+
+
+
+#This test checks if player one or player two are taken
 @client.command()
 async def players(ctx, member: discord.Member = None):
 
-    #This pulls in the global variables into this function, if they are changed somewhere else then these variable will still change
+    #This pulls in required global variables into this function
     global playerone
     global playertwo
 
-    #This is essentially four logic statements that test if playerone and playertwo re taken either at the same time or individually.
+    #Four logic statements where each one checks if one, both, or none of the spots for players are taken up and prints result
     if playerone and playertwo is not None:
         
         await ctx.send(f"{playerone.name} is player one and {playertwo.name} is player two")
@@ -144,6 +191,11 @@ async def players(ctx, member: discord.Member = None):
 #End of Event
 
 
+
+#---------------END OF EVENTS---------------#
+
+#Loops through the function waitcounter upon starting the bot
+client.loop.create_task(countertrack())
  
 #Put in bot token --> bot will go online
 client.run("")
